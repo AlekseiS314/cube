@@ -47,29 +47,20 @@ def create_apple():
 def eat_draw_apple():
     global player_y
     global player_x
+    global TIMER_0
+    global COUNT_GRIND_APPLE
+    global ADD_SECOND_FOR_APPLE
+    l = 4
     for apple_coordinate in apple_list:
-        if x0 <= apple_coordinate[0] <= x1:
-            if y0 <= apple_coordinate[1] <= y1:
+        if x0 - l <= apple_coordinate[0] <= x1 + l:
+            if y0 - l <= apple_coordinate[1] <= y1 + l:
                 apple_list.remove(apple_coordinate)
-                player_x += 2
-                player_y += 2
-        pygame.draw.circle(sc, (255, 0, 0), apple_coordinate, 4, 5)
+                TIMER_0 += ADD_SECOND_FOR_APPLE
+                COUNT_GRIND_APPLE += 1
+        pygame.draw.circle(sc, (255, 0, 0), apple_coordinate, 7, 5)
 
 
 def create_spike():
-    def calc_move_vector_spike(spike_coordinate: list, x_coordinate_player: float, y_coordinate_player: float) -> list[
-        int]:
-        def calc_len(coordinate_for_calc: tuple) -> float:
-            x_q = coordinate_for_calc[0]
-            y_q = coordinate_for_calc[1]
-            return (x_q ** 2 + y_q ** 2) ** 0.5
-
-        x_coordinate_spike = spike_coordinate[0]
-        y_coordinate_spike = spike_coordinate[1]
-        start_vector = (x_coordinate_player - x_coordinate_spike, y_coordinate_player - y_coordinate_spike)
-        k = 1 / (calc_len(start_vector))
-        return [x_coordinate_spike * k, y_coordinate_spike * k]
-
     global start_time_spike
     if current_time_spike - start_time_spike >= time_create_spike:
         pol = randint(1, 4)
@@ -87,7 +78,7 @@ def create_spike():
             x_cor = WIDTH
         coordinate = [x_cor, y_cor]
 
-        spike_list.append([coordinate, calc_move_vector_spike(coordinate, x_real, y_real)])
+        spike_list.append([coordinate,pol])
         start_time_spike = datetime.now()
 
 
@@ -98,17 +89,23 @@ def damage_move_spike():
         if x0 <= spike[0][0] <= x1:
             if y0 <= spike[0][1] <= y1:
                 spike_list.remove(spike)
-                player_x -= 2
-                player_y -= 2
+                end_game()
 
     def move_spike(i):
-        spike_list[i][0][0] += spike_list[i][1][0]
-        spike_list[i][0][1] += spike_list[i][1][1]
+        match spike_list[i][1]:
+            case 1:
+                spike_list[i][0][1] += 5
+            case 2:
+                spike_list[i][0][1] -= 5
+            case 3:
+                spike_list[i][0][0] += 5
+            case 4:
+                spike_list[i][0][0] -= 5
         pygame.draw.circle(sc, (0, 0, 255), spike_list[i][0], 4, 5)
 
     def delete_spike(s):
         x_s = s[0][0]
-        y_s = s[0][0]
+        y_s = s[0][1]
         if x_s < 0 or x_s > WIDTH:
             spike_list.remove(s)
         elif y_s < 0 or y_s > HEIGHT:
@@ -167,8 +164,7 @@ def draw_line():
         global player_y
         global player_x
         if check_hitbox(l[0],l[1],l[2]):
-            player_x -= 10
-            player_y -= 10
+            end_game()
 
     def calc_coordinate(x_dot : int,y_dot : int,ugol : int) -> tuple[tuple[int]]:
         if ugol == 90:
@@ -202,11 +198,10 @@ def create_sieve():
     global line_list
     global start_time_sieve
     if current_time_sieve - start_time_sieve > time_create_sieve:
-        k = 5
-        for i in range(1,k + 1):
-            line_list.append([100 * i,0,10,datetime.now()])
-            print(k)
-        print("A")
+        for i in range(-WIDTH * 2,WIDTH * 2,200):
+            line_list.append([i, 0, 45,  datetime.now()])
+            line_list.append([i, 0, -45, datetime.now()])
+            print(i)
         start_time_sieve = datetime.now()
 
 
@@ -218,6 +213,22 @@ def player_color_f():
     else:
         return player_x
 
+def okno():
+    global COUNT_GRIND_APPLE
+    global TIMER_0
+    global text_sc
+    global text_dest
+    global font_win
+    qp = str(60 - TIMER_0 + COUNT_GRIND_APPLE * ADD_SECOND_FOR_APPLE)
+    result = qp[:qp.index('.') + 3]
+    text_sc = font_win.render(f"{result}", False, (0, 255, 0), None)
+    text_dest = text_sc.get_rect(midtop=(WIDTH / 2, HEIGHT / 2))
+    sc.blit(text_sc, text_dest)
+
+def end_game():
+    global flag
+    flag = False
+
 WIDTH = 1920
 HEIGHT = 1080
 FPS = 60
@@ -228,9 +239,10 @@ player_y = 20
 sc = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 color = (255, 255, 255)
-flag = False
+flag = True
 x = 0
 y = 0
+ADD_SECOND_FOR_APPLE = 5
 start_time = datetime.now()
 start_time_spike = datetime.now()
 start_time_line = datetime.now()
@@ -240,10 +252,10 @@ apple_list = []
 time_create_apple = timedelta(seconds=3)
 
 spike_list = []
-time_create_spike = timedelta(seconds=1)
+time_create_spike = timedelta(seconds=0.2)
 
 line_list = []
-const_time_create_line = 0.5
+const_time_create_line = 1
 time_create_line = timedelta(seconds=const_time_create_line)
 
 time_bigger_line = timedelta(seconds=1)
@@ -251,51 +263,53 @@ time_bigger_line = timedelta(seconds=1)
 const_time_live_line = 1.5
 time_live_line = timedelta(seconds=const_time_live_line)
 
-const_time_create_sieve = 2
+const_time_create_sieve = 4
 time_create_sieve = timedelta(seconds=const_time_create_sieve)
 
-TIMER_0 = 0
-qwer = '393'
 font = pygame.font.Font(None,30)
-text_sc = font.render(qwer,False,(0,0,0),None)
-text_dest = text_sc.get_rect(midtop=(WIDTH/2,0))
-
+font_win = pygame.font.Font(None,300)
+TIMER_0 = 60
+COUNT_GRIND_APPLE = 0
 while True:
-    current_time = datetime.now()
-    current_time_spike = datetime.now()
-    current_time_line = datetime.now()
-    current_time_sieve = datetime.now()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            exit()
-    if player_x < 5:
-        exit()
+            end_game()
+    if flag:
+        current_time = datetime.now()
+        current_time_spike = datetime.now()
+        current_time_line = datetime.now()
+        current_time_sieve = datetime.now()
 
-    smaller(4,20)
+        smaller(4,20)
 
-    move(5,5)
+        move(5,5)
 
-    sc.fill((255, 255, 255))
-    pygame.draw.rect(sc,(20,player_color_f(),20),(WIDTH/2 + x,HEIGHT/2 + y,player_x,player_y))
-    x_real = WIDTH/2 + x + player_x/2
-    y_real = HEIGHT/2 + y + player_y/2
-    x0 = WIDTH / 2 + x
-    y0 = HEIGHT / 2 + y # левый верхинй
-    x1 = x0 + player_x
-    y1 = y0 + player_y  # правый нижний
+        sc.fill((255, 255, 255))
+        pygame.draw.rect(sc,(20,player_color_f(),20),(WIDTH/2 + x,HEIGHT/2 + y,player_x,player_y))
+        x_real = WIDTH/2 + x + player_x/2
+        y_real = HEIGHT/2 + y + player_y/2
+        x0 = WIDTH / 2 + x
+        y0 = HEIGHT / 2 + y # левый верхинй
+        x1 = x0 + player_x
+        y1 = y0 + player_y  # правый нижний
 
-    create_apple()
-    eat_draw_apple()
+        create_apple()
+        eat_draw_apple()
 
-    create_spike()
-    damage_move_spike()
+        create_spike()
+        damage_move_spike()
 
-    create_line()
-    create_sieve()
-    draw_line()
+        create_line()
+        create_sieve()
+        draw_line()
 
-    sc.blit(text_sc,text_dest)
+        TIMER_0 -= 1/60
+        qwer = str(TIMER_0)[:str(TIMER_0).index('.') + 3]
+        text_sc = font.render(qwer,False,(0,0,0),None)
+        text_dest = text_sc.get_rect(midtop=(WIDTH/2,0))
+        sc.blit(text_sc,text_dest)
+    else:
+       okno()
 
     pygame.display.update()
-
     clock.tick(FPS)
